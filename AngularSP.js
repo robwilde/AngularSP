@@ -4,9 +4,9 @@
 ///         Created by Ryan Schouten, @shrpntknight, https://github.com/sharepointknight/AngularSP
 ///
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-angular.module('AngularSP', []).service('AngularSPREST', ['$http', '$q', function ($http, $q) {
+var angularSP = angular.module('AngularSP', []);
+angularSP.service('AngularSPREST', ['$http', '$q', function ($http, $q) {
     var self = this;
-    this.IsSharePointHostedApp = false;
     this.GetItemTypeForListName = function GetItemTypeForListName(name) {
         return "SP.Data." + name.charAt(0).toUpperCase() + name.split(" ").join("").slice(1) + "ListItem";
     }
@@ -308,4 +308,352 @@ angular.module('AngularSP', []).service('AngularSPREST', ['$http', '$q', functio
         return deff;
     }
 }]);
+angularSP.service('AngularSPCSOM', ['$http', '$q', function ($http, $q) {
+    var self = this;
+    this.GetItemTypeForListName = function GetItemTypeForListName(name) {
+        return "SP.Data." + name.charAt(0).toUpperCase() + name.split(" ").join("").slice(1) + "ListItem";
+    }
+    this.SanitizeWebUrl = function SanitizeWebUrl(url) {
+        if (typeof (url) == "undefined" || url == null || url == "")
+            url = _spPageContextInfo.siteAbsoluteUrl;
+        return url;
+    }
+    this.CreateListItem = function CreateListItem(listName, item, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
 
+        var clientContext = new SP.ClientContext(webUrl);
+        var list = clientContext.get_web().get_lists().getByTitle(listName);
+
+        var createInfo = new SP.ListItemCreationInformation();
+        var listItem = list.addItem(createInfo);
+        for (var name in item)
+        {
+            listItem.set_item(name, item[name]);
+        }
+        listItem.update();
+
+        clientContext.load(listItem);
+        clientContext.executeQueryAsync(
+            function () {
+                deff.resolve(listItem);
+            },
+            function (sender, args) {
+                deff.reject(args);
+            });
+
+        var promise = $http({
+            url: webUrl + "/_api/web/lists/getbytitle('" + listName + "')/items",
+            method: "POST",
+            data: item,
+            headers: {
+                "Accept": "application/json;odata=verbose",
+                "X-RequestDigest": $("#__REQUESTDIGEST").val()
+            }
+        });
+        return promise;
+    }
+
+    this.GetItemById = function GetItemById(itemId, listName, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+
+        var clientContext = new SP.ClientContext(webUrl);
+        var targetList = clientContext.get_web().get_lists().getByTitle(listName);
+        var targetListItem = targetList.getItemById(itemId);
+        clientContext.load(targetListItem);
+        var deff = $q.defer().promise;
+        clientContext.executeQueryAsync(
+            function () {
+                deff.resolve(targetListItem);
+            },
+            function (sender, args) {
+                deff.reject(args);
+            });
+
+        return deff;
+    }
+    this.GetListItems = function GetListItems(listName, webUrl, camlQuery) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+
+        var clientContext = new SP.ClientContext(webUrl);
+        var oList = clientContext.get_web().get_lists().getByTitle(listName);
+
+        var camlQuery = new SP.CamlQuery();
+        camlQuery.set_viewXml(camlQuery);
+        var collListItem = oList.getItems(camlQuery);
+
+        var deff = $q.defer().promise;
+        clientContext.load(collListItem);
+        clientContext.executeQueryAsync(
+            function ()
+            {
+                deff.resolve(colListItem);
+            },
+            function(sender, args)
+            {
+                deff.reject(args);
+            }
+        );
+        return deff;
+    }
+    this.UpdateListItem = function UpdateListItem(itemId, listName, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+
+        var clientContext = new SP.ClientContext(siteUrl);
+        var oList = clientContext.get_web().get_lists().getByTitle(listName);
+
+        var listItem = oList.getItemById(itemId);
+        for (var name in item) {
+            listItem.set_item(name, item[name]);
+        }
+        listItem.update();
+
+        var deff = $q.defer().promise;
+        clientContext.executeQueryAsync(
+            function () {
+                deff.resolve(listItem);
+            },
+            function (sender, args) {
+                deff.reject(args);
+            }
+        );
+
+        return deff;
+    }
+    this.DeleteListItem = function DeleteListItem(itemId, listName, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+
+        var clientContext = new SP.ClientContext(siteUrl);
+        var list = clientContext.get_web().get_lists().getByTitle(listName);
+        this.oListItem = list.getItemById(itemId);
+        oListItem.deleteObject();
+
+        var deff = $q.defer().promise;
+        clientContext.executeQueryAsync(
+            function () {
+                deff.resolve();
+            },
+            function (sender, args) {
+                deff.reject(args);
+            }
+        );
+        return deff;
+    }
+    this.GetGroup = function GetGroup(groupName, includeMembers, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+
+        throw {
+            name: "GetGroup",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+
+        var url = webUrl + "/_api/web/sitegroups?$filter=(Title%20eq%20%27" + groupName + "%27)";
+        if (includeMembers)
+            url = url + "&$expand=Users";
+        var promise = $http({
+            url: url,
+            method: "GET",
+            headers: { "Accept": "application/json; odata=verbose" }
+        });
+
+        return promise;
+    }
+    this.GetSiteUsers = function GetSiteUsers(webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "GetSiteUsers",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+
+        var url = webUrl + "/_api/web/SiteUsers";
+        var promise = $http({
+            url: url,
+            method: "GET",
+            headers: { "Accept": "application/json; odata=verbose" }
+        });
+
+        return promise;
+    }
+    this.GetUserById = function GetUserById(userId, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "GetUserById",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+        var url = webUrl + "/_api/Web/GetUserById(" + userId + ")";
+        var promise = $http({
+            url: url,
+            method: "GET",
+            headers: { "Accept": "application/json; odata=verbose" }
+        });
+        return promise;
+
+    }
+    this.AddUsertoGroup = function AddUsertoGroup(groupId, loginName, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "AddUsertoGroup",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+        var item = { LoginName: loginName };
+        item["__metadata"] = { "type": "SP.User" };
+        webUrl = self.SanitizeWebUrl(webUrl);
+        var promise = $http({
+            url: webUrl + "/_api/web/sitegroups(" + groupId + ")/users",
+            type: "POST",
+            contentType: "application/json;odata=verbose",
+            data: JSON.stringify(item),
+            headers: {
+                "Accept": "application/json;odata=verbose",
+                "X-RequestDigest": $("#__REQUESTDIGEST").val()
+            }
+        });
+        return promise;
+    }
+    this.GetUserId = function getUserId(loginName, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        var deff = $q.defer().promise;
+        var context = new SP.ClientContext(webUrl);
+        var user = context.get_web().ensureUser(loginName);
+        context.load(user);
+        context.executeQueryAsync(
+             function () { deffered.resolve(user); },
+             function (sender, args) { deffered.reject(user, args); }
+        );
+        return deff;
+    }
+    this.CreateSubSite = function CreateSubSite(options, webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "CreateSubSite",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+        var createData = {
+            parameters: {
+                '__metadata': {
+                    'type': 'SP.WebInfoCreationInformation'
+                },
+                Url: options.siteUrl,
+                Title: options.siteName,
+                Description: options.siteDescription,
+                Language: 1033,
+                WebTemplate: options.siteTemplate,
+                UseUniquePermissions: options.uniquePermissions
+                //CustomMasterUrl: options.MasterUrl,
+                //MasterUrl: options.MasterUrl,
+                //EnableMinimalDownload: options.MinimalDownload
+            }
+        };
+        var deffered = $q.defer().promise;
+        // Because we don't have the hidden __REQUESTDIGEST variable, we need to ask the server for the FormDigestValue
+        var __REQUESTDIGEST;
+        var rootUrl = location.protocol + "//" + location.host;
+
+        var contextInfoPromise = $http({
+            url: webUrl + "/_api/contextinfo",
+            method: "POST",
+            headers: {
+                "Accept": "application/json; odata=verbose"
+            },
+            success: function (data) {
+                __REQUESTDIGEST = data.d.GetContextWebInformation.FormDigestValue;
+            },
+            error: function (data, errorCode, errorMessage) {
+                alert(errorMessage);
+            }
+        });
+
+        // Once we have the form digest value, we can create the subsite
+        $q.when(contextInfoPromise).done(function () {
+            $http({
+                url: webUrl + "/_api/web/webinfos/add",
+                type: "POST",
+                headers: {
+                    "accept": "application/json;odata=verbose",
+                    "content-type": "application/json;odata=verbose",
+                    "X-RequestDigest": __REQUESTDIGEST
+                },
+                data: JSON.stringify(createData)
+            }).then(function (data) {
+                deffered.resolve(data);
+            });
+        });
+        return deffered;
+    }
+    this.GetWebData = function GetWebData(webUrl) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "GetWebData",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+        var url = webUrl + "/_api/web";
+
+        var promise = $http({
+            url: url,
+            method: "GET",
+            headers: { "Accept": "application/json; odata=verbose" }
+        });
+        return promise;
+    }
+    this.UpdateWebData = function UpdateWebData(webUrl, updateData) {
+        webUrl = self.SanitizeWebUrl(webUrl);
+        throw {
+            name: "UpdateWebData",
+            level: "Not Implemented",
+            message: "Not Implemented",
+            htmlMessage: "Not Implemented",
+            toString: function () { return this.name + ": " + this.message; }
+        };
+
+        var __REQUESTDIGEST;
+        var contextInfoPromise = $http({
+            url: webUrl + "/_api/contextinfo",
+            method: "POST",
+            headers: {
+                "Accept": "application/json; odata=verbose"
+            },
+            success: function (data) {
+                __REQUESTDIGEST = data.d.GetContextWebInformation.FormDigestValue;
+            },
+            error: function (data, errorCode, errorMessage) {
+                alert(errorMessage);
+            }
+        });
+        var deff = $q.defer().promise;
+        updateData.__metadata = { "type": "SP.Web" };
+        $q.when(contextInfoPromise).done(function () {
+            self.GetWebData(webUrl).then(function (data) {
+                $http({
+                    url: data.d.__metadata.uri,
+                    type: "POST",
+                    contentType: "application/json;odata=verbose",
+                    data: JSON.stringify(updateData),
+                    headers: {
+                        "Accept": "application/json;odata=verbose",
+                        "X-RequestDigest": $("#__REQUESTDIGEST").val(),
+                        "X-HTTP-Method": "MERGE",
+                        "If-Match": data.d.__metadata.etag
+                    }
+                }).then(function (data1) { deff.resolve(data1) }, function (data1) { deff.reject(data1) });
+            });
+        });
+        return deff;
+    }
+}]);
