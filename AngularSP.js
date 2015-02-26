@@ -1,8 +1,19 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+///
+///         AngularSP version 0.0.0.1
+///         Created by Ryan Schouten, @shrpntknight, https://github.com/sharepointknight/AngularSP
+///
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 angular.module('AngularSP', []).service('AngularSPREST', ['$http', '$q', function ($http, $q) {
     var self = this;
     this.IsSharePointHostedApp = false;
     this.GetItemTypeForListName = function GetItemTypeForListName(name) {
         return "SP.Data." + name.charAt(0).toUpperCase() + name.split(" ").join("").slice(1) + "ListItem";
+    }
+    this.GetUrlPrefix = function GetUrlPrefix() {
+        if (self.IsSharePointHostedApp) {
+
+        }
     }
     this.SanitizeWebUrl = function SanitizeWebUrl(url) {
         if (typeof (url) == "undefined" || url == null || url == "")
